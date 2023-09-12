@@ -1,9 +1,11 @@
 import { createPersonValidator } from './validator.js';
 import { Person } from './model.js';
-import { getNextId } from './utils.js';
+import mongoose from 'mongoose';
 
+
+// createPerson function
 const createPerson = async (req, res) => {
-    const { value, error } = createPersonValidator.validate(req.body);
+    const { error } = createPersonValidator.validate(req.body);
 
     if (error) {
         return res.status(400).json({ error: error.details[0].message });
@@ -11,13 +13,14 @@ const createPerson = async (req, res) => {
 
     try {
         // Create a new Person document
-        const id = await getNextId();
-        const person = await Person.create({
-            name: value.name,
-            id,
+        const person = new Person({
+            name: req.body.name
         });
 
-        return res.status(201).json(person);
+        // Save the document to the database
+        await person.save();
+        const {_id:id} = person;
+        return res.status(201).json({ name: req.body.name, id });
     } catch (error) {
         console.error(error);
         return res.status(500).json({
@@ -26,70 +29,85 @@ const createPerson = async (req, res) => {
     }
 };
 
-const getPerson = async (req, res)=>{
-    const {name} = req.query;
+
+// getPerson function
+const getPerson = async (req, res) => {
+    
+   
     try {
-        const users = await Person.findOne({name});
+        const { id } = req.query; // Get the ID from request parameters
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                error: "Invalid ID format",
+            });
+        };
+        const users = await Person.findOne({ _id:id });
+
         if (!users) {
-        return res.status(404).json({ error: "Person not found" })};
-        // Access the properties of the retrieved person
-        const { name: personName, id } = users;
-
-        return res.status(200).json({ 
-            name: personName,
-            id,
-        });
-        
+            return res.status(404).json({ error: "User not found" });
+        }
+        return res.status(200).json({name:users.name, id});
     } catch (error) {
-        return res.status(500).json({error:"Internal Server error"})
+        console.log(error)
+        return res.status(500).json({ error: "Internal Server error" });
+        
     }
+};
 
-}
 
-const updatePerson = async (req, res)=>{
+// updatePerson function
+const updatePerson = async (req, res) => {
     const { value, error } = createPersonValidator.validate(req.body);
     if (error) {
         return res.status(400).json({ error: error.details[0].message });
-    };
-     const id = Number(req.params.id) //get the id of the person as a path parameter
-     console.log(id)
-
-     try {
-         const user = await Person.findOne({id});
-         if (!user) {
-            return res.status(404).json({
-                error: "id doesnt match any person on the database"
-            })
-         }
-         user.name = value.name;
-         await user.save();
-         
-         console.log(user)
-         return res.status(200).json("your profile has been updated")
-     } catch (error) {
-        console.log(error);
-        return res.status(500).json("Internal Server error");
-        
-     }
-
-};
-
-const deletePerson = async (req,res)=>{
-    const id = Number(req.params.id);
-    if (isNaN(id)) {
-        return res.status(400).json("Please provide a valid id");
     }
 
     try {
-        const user = await Person.deleteOne({id:id});
+        const { id } = req.params; // Get the ID from request parameters
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                error: "Invalid ID format",
+            });
+        }
+        const user = await Person.findOne({ _id: id });
+
         if (!user) {
-            return res.status(404).json("user not found");   
+            return res.status(404).json({
+                error: "ID doesn't match any person in the database",
+            });
+        }
+
+        user.name = value.name;
+        await user.save();
+
+        return res.status(200).json({name:value.name, id});
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json("Internal Server error");
+    }
+};
+
+
+// deletePerson function
+const deletePerson = async (req, res) => {
+    const { id } = req.params; // Get the ID from request parameters
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                error: "Invalid ID format",
+            });
+        }
+    try {
+        const user = await Person.deleteOne({ _id: id });
+        if (!user.deletedCount) {
+            return res.status(404).json("User not found");
         }
         return res.status(200).json("USER DATA DELETED");
     } catch (error) {
+        console.error(error);
         return res.status(500).json("Internal Server Error");
     }
-}
+};
+
 
 export{
     createPerson,
