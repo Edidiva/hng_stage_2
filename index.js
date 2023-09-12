@@ -1,9 +1,9 @@
-import express from 'express';
-import {router} from "./src/route.js";
-import mongoose from "mongoose";
-import dotenv from 'dotenv'
+const express = require('express');
+const router = require('./src/route');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 
-dotenv.config()
+dotenv.config();
 const app = express();
 app.use(express.json());
 app.use("/api", router);

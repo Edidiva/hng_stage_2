@@ -1,7 +1,11 @@
-import Joi from "joi";
+// validator.js
+
+const Joi = require('joi');
 
 const createPersonValidator = Joi.object({
-"name": Joi.string().required().messages({"message": "Your name is not in the valid format"})
+    name: Joi.string().required().messages({ message: 'Your name is not in the valid format' }),
 }).strict();
 
-export {createPersonValidator}
+module.exports = {
+    createPersonValidator
+};
